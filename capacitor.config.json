@@ -1,6 +1,6 @@
 {
   "appId": "com.qclimit.app",
-  "appName": "QC LIMIT",
+  "appName": "Recheck QC",
   "webDir": "www",
   "ios": { "contentInset": "never" }
 }

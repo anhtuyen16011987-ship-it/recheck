@@ -1,0 +1,6 @@
+{
+  "appId": "com.qclimit.app",
+  "appName": "QC LIMIT",
+  "webDir": "www",
+  "ios": { "contentInset": "never" }
+}

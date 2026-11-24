@@ -1,0 +1,48 @@
+name: Build IPA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install
+
+      - name: Add iOS project
+        run: npx cap add ios
+
+      - name: Generate icons
+        run: npx capacitor-assets generate --ios --iconBackgroundColor '#0a38d6' || echo "skip icons"
+
+      - name: Sync
+        run: npx cap sync ios
+
+      - name: Build (unsigned)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr QC_LIMIT.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QC_LIMIT-ipa
+          path: QC_LIMIT.ipa

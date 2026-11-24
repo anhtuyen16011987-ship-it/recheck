@@ -13,7 +13,7 @@
 <style>
 :root{box-sizing:border-box;--deep:#0533c7;--blue:#0d57eb;--sky:#40a0ff;--yel:#ffdd1f;--grn:#17a83d;--ink:#0a1738}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:#0a1a4a;font-family:"Be Vietnam Pro","Nunito","Segoe UI",system-ui,sans-serif;font-weight:800;color:var(--ink);display:flex;justify-content:center;min-height:100vh}
 .app{width:100%;max-width:393px;min-height:100vh;padding:10px 12px 12px;position:relative;overflow:hidden;
 background:radial-gradient(120% 40% at 20% 100%,#7fe0ff66,#0000),linear-gradient(#0a38d6,#1b7cfa 42%,#58c8ff)}
@@ -82,7 +82,7 @@ dialog p{margin-bottom:8px}dialog button{margin-top:6px;padding:8px 18px;border-
 .tt{display:flex;gap:6px;margin-bottom:8px}.tt .chip{margin:0}
 .tg-wrap{max-height:56vh;overflow-y:auto}.tg{display:grid;grid-template-columns:74px repeat(var(--n),1fr);gap:4px;align-items:center}
 .tg .h{color:#fff;border-radius:8px;text-align:center;padding:3px 0;font-size:11.5px}.tg .y{grid-column:1/-1;color:var(--blue);font-size:14px;margin-top:6px}.tg .l{font-size:11.5px}
-.tg input{width:100%;min-width:0;border:1.5px solid #0a173833;border-radius:8px;padding:5px 2px;text-align:center;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+.tg input{width:100%;min-width:0;border:1.5px solid #0a173833;border-radius:8px;padding:5px 2px;text-align:center;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
 .ta{display:flex;gap:8px;margin-top:10px}.ta button{flex:1;margin:0;padding:9px;border:0;border-radius:20px;font:inherit;font-size:14px;background:var(--blue);color:#fff;cursor:pointer}.ta button.g{background:#fff;color:var(--blue);border:2px solid var(--blue)}
 [hidden]{display:none!important}
 .hd2{display:flex;align-items:center;gap:10px;padding-top:6px}
@@ -112,8 +112,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--yel);outline-of
   <div class="bars"><i></i><i></i><i></i><i></i><i></i></div></div>
  <div class="pill ok" id="pill"><div class="ic" id="pic">✔</div><div class="t" id="ptxt">Đã nhận thông số!</div><div class="bars"><i></i><i></i><i></i><i></i><i></i></div></div>
  <div class="nums">
-  <div class="glass num"><div class="i"><i data-i="target"></i></div><div><label>STD</label><input id="std" inputmode="decimal" value="1914"></div></div>
-  <div class="glass num"><div class="i"><i data-i="pm"></i></div><div><label>Dung sai</label><input id="tol" inputmode="decimal" value="20"></div></div></div>
+  <div class="glass num"><div class="i"><i data-i="target"></i></div><div><label>STD</label><input id="std" inputmode="decimal" value=""></div></div>
+  <div class="glass num"><div class="i"><i data-i="pm"></i></div><div><label>Dung sai</label><input id="tol" inputmode="decimal" value=""></div></div></div>
  <div class="sec"><div class="tab"><i data-i="gear"></i>Chọn công đoạn</div><div class="row" id="stage"></div></div>
  <div class="sec"><div class="tab"><i data-i="box"></i>Chọn kiểu sản phẩm</div>
   <div class="row" style="margin-bottom:8px"><span class="lb" style="font-size:15.5px">Yarn Group:</span><span class="row" id="yarn" style="flex:1;min-width:0"></span></div>
@@ -260,7 +260,36 @@ function fit(){let on=false;try{on=pageOn}catch(_){}const a=$(on?"pg":"app"),i=a
  const cs=getComputedStyle(a),avail=a.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
  let z=1;while(z>0.4){i.style.width=(100/z)+"%";if(i.offsetHeight*z<=avail)break;z-=0.01}
  if(z<1){i.style.transform=`scale(${z})`;i.style.marginBottom=(i.offsetHeight*(z-1))+"px"}}
-const r0=render;render=()=>{r0();fit()};
+const NUMF=28,NUMMIN=11,_cv=document.createElement("canvas").getContext("2d");
+function fitNum(el){
+ const w=el.clientWidth;if(!w)return;
+ const t=el.value||"";el.style.fontSize=NUMF+"px";if(!t)return;
+ const cs=getComputedStyle(el);_cv.font=cs.fontWeight+" "+NUMF+"px "+cs.fontFamily;
+ const tw=_cv.measureText(t).width-t.length;
+ if(tw>w-2){el.style.fontSize=Math.max(NUMMIN,Math.floor(NUMF*(w-2)/tw*10)/10)+"px"}
+ let f=parseFloat(el.style.fontSize);while(f>NUMMIN&&el.scrollWidth>el.clientWidth){f-=.5;el.style.fontSize=f+"px"}}
+function fitNums(){["std","tol"].forEach(id=>fitNum($(id)))}
+const r0=render;render=()=>{r0();fit();fitNums()};
+["input","change"].forEach(e=>{$("std").addEventListener(e,fitNums);$("tol").addEventListener(e,fitNums)});
+addEventListener("resize",fitNums);addEventListener("load",fitNums);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitNums);
 addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeout(fit,200));addEventListener("load",fit);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 render();
+
+/* Reset zoom về mặc định khi mở app */
+(function(){
+ const m=document.querySelector('meta[name=viewport]');
+ const base='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+ function resetZoom(){
+  if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1.0001, user-scalable=no, viewport-fit=cover');
+   setTimeout(()=>m.setAttribute('content',base),60)}
+  scrollTo(0,0);fit();
+ }
+ resetZoom();
+ addEventListener('load',resetZoom);
+ addEventListener('pageshow',resetZoom);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)resetZoom()});
+ document.addEventListener('focusout',()=>setTimeout(resetZoom,120));
+ ['gesturestart','gesturechange','gestureend'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault()));
+ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(visualViewport.scale>1.001)resetZoom()});
+})();
 </script></body></html>

@@ -151,7 +151,7 @@ ICO.table=SV('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18
 ICO.back=SV('<path d="m15 5-7 7 7 7"/>');
 ICO.lock=SV('<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>');
 const OPT={stage:[["cutting",ICO.scissors+"Sau Cutting"],["rw",ICO.sew+"Sau RW"]],yarn:["Nylon - FI","Nylon - RO","Pet FI & RO"],dir:["Warp","Weft"],kind:["CUT","DỆT"]};
-const S={stage:"rw",yarn:"Nylon - FI",dir:"Warp",kind:"CUT"};
+const S={stage:"cutting",yarn:"Nylon - FI",dir:"Warp",kind:"CUT"};
 let TB=JSON.parse(JSON.stringify(T)),TS="cutting";
 try{const s=localStorage.getItem("qcTB");if(s){const o=JSON.parse(s);if(o&&o.cutting&&o.rw)TB=o}}catch(_){}
 const save=()=>{try{localStorage.setItem("qcTB",JSON.stringify(TB))}catch(_){}};

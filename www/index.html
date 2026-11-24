@@ -166,15 +166,63 @@ function render(){["stage","yarn","dir","kind"].forEach(chips);
  const nm=["A","B","C"],rl=["Worker","Subleader","Section"];
  R.innerHTML=[0,1,2].map(i=>{const p=P[i],v=ok&&p;return `<div class="res${v?"":" off"}"><div class="tag ${nm[i]}"><b>${nm[i]}</b><small>${rl[i]}</small></div><div class="lim"><small>MIN (−)</small><b>${v?fmt(rx(s-t*p[0])):"—"}</b></div><div class="sep"></div><div class="lim"><small>MAX (+)</small><b>${v?fmt(rx(s+t*p[1])):"—"}</b></div></div>`}).join("")}
 function status(ok,txt){const p=$("pill");p.classList.toggle("ok",ok);$("pic").textContent=ok?"✔":"i";$("ptxt").textContent=txt}
-function parse(x){x=x.toLowerCase().replace(/\+\/?-|±/g," trừ ");const m=x.match(/\d+(?:[.,]\d+)?/g);if(!m||m.length<2)return null;
- let a=m[0];if(/^[1-9]\d{0,2}[.,]\d{3}$/.test(a))a=a.replace(/[.,]/g,"");return[a.replace(",","."),m[1].replace(",",".")]}
-function apply(t){const r=parse(t);if(r){$("std").value=r[0];$("tol").value=r[1];status(true,"Đã nhận thông số!");render();return true}status(false,"Chưa nhận rõ số, thử đọc lại.");return false}
-let rec=null,listening=false;
-$("mbtn").onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(listening){rec&&rec.stop();return}
- const setL=v=>{listening=v;$("mic").classList.toggle("on",v);$("pill").classList.toggle("on",v);$("mc").innerHTML=v?ICO.wave:ICO.mic;$("mtxt").textContent=v?"Đang nghe… chạm để dừng":"Nhấn Micro và đọc thông số"};
- if(!SR){setL(true);status(false,"Đang nghe… (demo)");setTimeout(()=>{setL(false);$("std").value="1914";$("tol").value="20";status(true,"Đã nhận thông số!");render()},1800);return}
- try{rec=new SR();rec.lang="vi-VN";rec.interimResults=true;rec.onresult=ev=>apply(ev.results[ev.results.length-1][0].transcript);rec.onend=()=>setL(false);rec.onerror=()=>{setL(false);status(false,"Không mở được micro. Hãy cho phép quyền micro.")};rec.start();setL(true);status(false,"Đang nghe… đọc STD cộng trừ dung sai")}catch(_){setL(false)}};
+function norm(s){s=s.replace(/^[.,]+|[.,]+$/g,"");if(!/\d/.test(s))return null;
+ const a=s.lastIndexOf("."),b=s.lastIndexOf(",");
+ if(a>=0&&b>=0){const d=Math.max(a,b);s=s.slice(0,d).replace(/[.,]/g,"")+"."+s.slice(d+1)}
+ else if((s.match(/[.,]/g)||[]).length>1)s=s.replace(/[.,]/g,"");
+ else s=s.replace(",",".");
+ return /^\d+(\.\d+)?$/.test(s)?s:null}
+const DW={"không":"0","linh":"0","lẻ":"0","một":"1","mốt":"1","hai":"2","ba":"3","bốn":"4","tư":"4","năm":"5","lăm":"5","sáu":"6","bảy":"7","tám":"8","chín":"9"};
+function toNum(tk,first){let s="";
+ for(const t of tk){
+  if(/^(mươi|mười|trăm|nghìn|ngàn|chục)$/.test(t))return null;
+  if(t==="phẩy"||t==="phảy"||t==="chấm"){s+="."}
+  else if(DW[t]!==undefined){s+=DW[t]}
+  else if(/\d/.test(t)){s+=t.replace(/[^\d.,]/g,"")}}
+ if(first&&/^[1-9]\d{0,2}[.,]\d{3}$/.test(s))s=s.replace(/[.,]/g,"");
+ return norm(s)}
+function parse(x){
+ x=x.toLowerCase().replace(/\+\s*\/?\s*-|±/g," | ").replace(/\+/g," | ").replace(/dung sai/g," | ");
+ const parts=[[]];
+ for(const t of x.split(/\s+/)){if(!t)continue;
+  if(/^(cộng|trừ|chừ|trư|\||-|–)$/.test(t)){if(parts[parts.length-1].length)parts.push([]);continue}
+  parts[parts.length-1].push(t)}
+ const P=parts.filter(p=>p.length);
+ if(P.length>=2){const a=toNum(P[0],true),b=toNum(P[1],false);if(a!==null&&b!==null)return[a,b]}
+ const m=x.match(/\d+(?:[.,]\d+)?/g);
+ if(m&&m.length>=2){const a=toNum([m[0]],true),b=toNum([m[1]],false);if(a!==null&&b!==null)return[a,b]}
+ return null}
+function apply(t,quiet){const r=parse(t);if(r){$("std").value=r[0];$("tol").value=r[1];status(true,"Đã nhận thông số!");render();return true}if(!quiet)status(false,"Chưa nhận rõ số, thử đọc lại.");return false}
+let rec=null,listening=false,autoT=null;
+const setL=v=>{listening=v;$("mic").classList.toggle("on",v);$("pill").classList.toggle("on",v);$("mc").innerHTML=v?ICO.wave:ICO.mic;$("mtxt").textContent=v?"Đang nghe… chạm để dừng":"Nhấn Micro và đọc thông số"};
+function nativeSR(){const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())return null;
+ return(C.Plugins&&C.Plugins.SpeechRecognition)||(C.registerPlugin?C.registerPlugin("SpeechRecognition"):null)}
+function stopAll(){clearTimeout(autoT);const P=nativeSR();
+ if(P){try{P.stop()}catch(_){}try{P.removeAllListeners()}catch(_){}}
+ else if(rec){try{rec.stop()}catch(_){}}
+ setL(false)}
+async function startNative(P){
+ try{
+  const av=await P.available();if(!av.available){status(false,"Thiết bị chưa hỗ trợ đọc giọng nói. Hãy nhập tay.");return}
+  const pm=await P.requestPermissions();
+  if(pm.speechRecognition!=="granted"){status(false,"Hãy cho phép micro và nhận giọng nói trong Cài đặt.");return}
+  await P.removeAllListeners();
+  await P.addListener("partialResults",d=>{const t=d.matches&&d.matches[0];
+   if(t&&apply(t,true)){clearTimeout(autoT);autoT=setTimeout(stopAll,1600)}});
+  await P.addListener("listeningState",d=>{if(d.status==="stopped")setL(false)});
+  setL(true);status(false,"Đang nghe… đọc STD cộng trừ dung sai");
+  await P.start({language:"vi-VN",maxResults:1,partialResults:true,popup:false})
+ }catch(e){setL(false);status(false,"Không mở được micro. Hãy cho phép quyền micro.")}}
+$("mbtn").onclick=()=>{
+ if(listening){stopAll();return}
+ const P=nativeSR();if(P){startNative(P);return}
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){status(false,"Thiết bị chưa hỗ trợ đọc giọng nói. Hãy nhập tay.");return}
+ try{rec=new SR();rec.lang="vi-VN";rec.interimResults=true;
+  rec.onresult=ev=>{const r=ev.results[ev.results.length-1];apply(r[0].transcript,!r.isFinal)};
+  rec.onend=()=>setL(false);
+  rec.onerror=()=>{setL(false);status(false,"Không mở được micro. Hãy cho phép quyền micro.")};
+  rec.start();setL(true);status(false,"Đang nghe… đọc STD cộng trừ dung sai")}catch(_){setL(false)}};
 $("std").oninput=$("tol").oninput=render;
 $("reset").onclick=()=>{$("std").value="";$("tol").value="";Object.assign(S,{stage:"cutting",yarn:"Nylon - FI",dir:"Warp",kind:"CUT"});status(false,"Sẵn sàng. Chạm micro để đọc thông số.");render()};
 document.querySelectorAll("[data-i]").forEach(x=>x.innerHTML=ICO[x.dataset.i]);

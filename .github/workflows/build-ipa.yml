@@ -19,6 +19,13 @@ jobs:
       - name: Add iOS project
         run: npx cap add ios
 
+      - name: Allow microphone and speech
+        run: |
+          PB=/usr/libexec/PlistBuddy
+          PL=ios/App/App/Info.plist
+          $PB -c "Add :NSMicrophoneUsageDescription string 'Dung micro de doc thong so'" $PL || $PB -c "Set :NSMicrophoneUsageDescription 'Dung micro de doc thong so'" $PL
+          $PB -c "Add :NSSpeechRecognitionUsageDescription string 'Nhan giong noi de dien thong so'" $PL || $PB -c "Set :NSSpeechRecognitionUsageDescription 'Nhan giong noi de dien thong so'" $PL
+
       - name: Generate icons
         run: npx capacitor-assets generate --ios --iconBackgroundColor '#0a38d6' || echo "skip icons"
 

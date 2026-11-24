@@ -19,7 +19,7 @@ body{background:#0a1a4a;font-family:"Be Vietnam Pro","Nunito","Segoe UI",system-
 background:radial-gradient(120% 40% at 20% 100%,#7fe0ff66,#0000),linear-gradient(#0a38d6,#1b7cfa 42%,#58c8ff)}
 @media(min-width:500px){body{padding:20px 0}.app{min-height:0;height:852px;border-radius:44px;overflow-y:auto;box-shadow:0 20px 60px #0008;scrollbar-width:none}}
 .app::-webkit-scrollbar{display:none}
-@media(max-width:499px){html,body{height:100%;overflow:hidden}body{min-height:0}.app{height:100%;min-height:0;overflow-x:hidden;overflow-y:auto;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}}
+@media(max-width:499px){html,body{height:100%;overflow:hidden;overscroll-behavior:none}body{position:fixed;inset:0;width:100%;min-height:0}.app,.app.pg{height:100%;min-height:0;overflow:hidden;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));}}
 .wave{position:absolute;left:0;right:0;pointer-events:none;border-radius:50% 50% 0 0/30px 30px 0 0;background:#fff}
 .w1{bottom:0;height:26%;opacity:.16;border-radius:60% 40% 0 0/40px 60px 0 0}.w2{bottom:0;height:17%;opacity:.2;border-radius:40% 60% 0 0/50px 30px 0 0}.w3{bottom:0;height:9%;opacity:.25}
 .bub{position:absolute;border-radius:50%;border:1.5px solid #fffc;background:radial-gradient(#fff1,#fff7);pointer-events:none}
@@ -230,7 +230,7 @@ function tabs(){$("tt").innerHTML=OPT.stage.map(([v,l])=>`<button class="chip${T
 function buildTbl(){const n=TS==="rw"?6:4,g=$("tg");g.style.setProperty("--n",n);
  let h="<span></span>"+["A−","A+","B−","B+","C−","C+"].slice(0,n).map((t,i)=>`<span class="h ${"ABC"[i>>1]}">${t}</span>`).join("");
  OPT.yarn.forEach(y=>{h+=`<div class="y">${y}</div>`;OPT.dir.forEach(d=>OPT.kind.forEach(k=>{h+=`<span class="l">${d} ${k}</span>`;TB[TS][y][d][k].forEach((p,i)=>p.forEach((v,j)=>{h+=`<input inputmode="decimal" value="${v}" data-p="${y}|${d}|${k}|${i}|${j}" aria-label="${y} ${d} ${k}">`}))}))});
- g.innerHTML=h}
+ g.innerHTML=h;fit()}
 $("tg").oninput=ev=>{const t=ev.target;if(!t.dataset.p)return;const[y,d,k,i,j]=t.dataset.p.split("|");const v=parseFloat(t.value.replace(",","."));if(!isNaN(v)&&v>=0){TB[TS][y][d][k][+i][+j]=v;save();render()}};
 $("tt").onclick=ev=>{const b=ev.target.closest("button");if(b){TS=b.dataset.s;tabs();buildTbl()}};
 $("ref").onclick=()=>go(true);$("back").onclick=()=>go(false);
@@ -242,8 +242,8 @@ const setPW=h=>{memPW=h;try{localStorage.setItem(PK,h)}catch(_){}};
 async function hsh(s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("qc|"+s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(_){let h=5381;for(const c of s)h=(h*33^c.charCodeAt(0))>>>0;return"f"+h}}
 function showLock(m){mode=m;unlocked=false;$("lock").hidden=false;$("tcontent").hidden=true;const c=m!=="enter";$("p1").value=$("p2").value="";$("p2").hidden=!c;$("pcancel").hidden=m!=="change";$("msg").textContent="";
  $("lt").textContent=m==="create"?"Tạo mật khẩu để bảo vệ bảng tham chiếu. Chỉ người biết mật khẩu mới xem và sửa được.":m==="change"?"Nhập mật khẩu mới.":"Nhập mật khẩu để xem và sửa bảng tham chiếu.";
- $("p1").placeholder=m==="change"?"Mật khẩu mới":"Mật khẩu";$("pgo").textContent=m==="create"?"Tạo mật khẩu":m==="change"?"Lưu mật khẩu":"Mở khóa"}
-function showTable(){unlocked=true;$("lock").hidden=true;$("tcontent").hidden=false;tabs();buildTbl()}
+ $("p1").placeholder=m==="change"?"Mật khẩu mới":"Mật khẩu";$("pgo").textContent=m==="create"?"Tạo mật khẩu":m==="change"?"Lưu mật khẩu":"Mở khóa";fit()}
+function showTable(){unlocked=true;$("lock").hidden=true;$("tcontent").hidden=false;tabs();buildTbl();fit()}
 $("pgo").onclick=async()=>{const a=$("p1").value,msg=$("msg");
  if(mode==="enter"){if(await hsh(a)===getPW())showTable();else{msg.textContent="Sai mật khẩu, thử lại.";$("p1").select()}return}
  if(a.length<4){msg.textContent="Mật khẩu cần ít nhất 4 ký tự.";return}
@@ -251,14 +251,14 @@ $("pgo").onclick=async()=>{const a=$("p1").value,msg=$("msg");
  setPW(await hsh(a));showTable()};
 $("p1").onkeydown=$("p2").onkeydown=ev=>{if(ev.key==="Enter")$("pgo").click()};
 $("pcancel").onclick=showTable;$("chpw").onclick=()=>showLock("change");$("lk2").onclick=()=>showLock("enter");
-function view(){$("app").hidden=pageOn;$("pg").hidden=!pageOn;if(pageOn)showLock(getPW()?"enter":"create");else unlocked=false;scrollTo(0,0);if(!pageOn)fit()}
+function view(){$("app").hidden=pageOn;$("pg").hidden=!pageOn;if(pageOn)showLock(getPW()?"enter":"create");else unlocked=false;scrollTo(0,0);fit()}
 function go(on){if(pageOn===on)return;pageOn=on;try{location.hash=on?"tham-chieu":""}catch(_){}view()}
 addEventListener("hashchange",()=>{const on=location.hash==="#tham-chieu";if(on!==pageOn){pageOn=on;view()}});
 $("gear").onclick=()=>$("dlg").showModal();$("close").onclick=()=>$("dlg").close();
-function fit(){const a=$("app"),i=a.querySelector(".in");if(a.hidden)return;
+function fit(){let on=false;try{on=pageOn}catch(_){}const a=$(on?"pg":"app"),i=a.querySelector(".in");if(a.hidden)return;
  i.style.transform="";i.style.width="";i.style.marginBottom="";i.style.transformOrigin="top left";
  const cs=getComputedStyle(a),avail=a.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
- let z=1;while(z>0.5){i.style.width=(100/z)+"%";if(i.offsetHeight*z<=avail)break;z-=0.01}
+ let z=1;while(z>0.4){i.style.width=(100/z)+"%";if(i.offsetHeight*z<=avail)break;z-=0.01}
  if(z<1){i.style.transform=`scale(${z})`;i.style.marginBottom=(i.offsetHeight*(z-1))+"px"}}
 const r0=render;render=()=>{r0();fit()};
 addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeout(fit,200));addEventListener("load",fit);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);

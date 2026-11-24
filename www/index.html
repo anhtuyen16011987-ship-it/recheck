@@ -275,13 +275,14 @@ addEventListener("resize",fitNums);addEventListener("load",fitNums);if(document.
 addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeout(fit,200));addEventListener("load",fit);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 render();
 
+if(!$("std").value&&!$("tol").value)status(false,"Sẵn sàng. Chạm micro để đọc thông số.");
 /* Reset zoom về mặc định khi mở app */
 (function(){
  const m=document.querySelector('meta[name=viewport]');
  const base='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
  function resetZoom(){
   if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1.0001, user-scalable=no, viewport-fit=cover');
-   setTimeout(()=>m.setAttribute('content',base),60)}
+   setTimeout(()=>m.setAttribute('content',base),60);setTimeout(()=>{fit();fitNums()},220)}
   scrollTo(0,0);fit();
  }
  resetZoom();
@@ -291,5 +292,16 @@ render();
  document.addEventListener('focusout',()=>setTimeout(resetZoom,120));
  ['gesturestart','gesturechange','gestureend'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault()));
  if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(visualViewport.scale>1.001)resetZoom()});
+})();
+
+/* Tính lại kích thước vừa màn hình nhiều lần lúc mở app (font/viewport tải xong muộn) */
+(function(){
+ const run=()=>{fit();fitNums()};
+ [0,60,150,300,600,1000,1800,3000].forEach(t=>setTimeout(run,t));
+ requestAnimationFrame(()=>requestAnimationFrame(run));
+ if(document.fonts&&document.fonts.addEventListener)document.fonts.addEventListener("loadingdone",run);
+ addEventListener("pageshow",()=>{run();setTimeout(run,300)});
+ if(window.visualViewport)visualViewport.addEventListener("resize",run);
+ if(window.ResizeObserver){let ph=0,pw=0;const ro=new ResizeObserver(()=>{const e=$(pageOn?"pg":"app"),h=e.clientHeight,w=e.clientWidth;if(h!==ph||w!==pw){ph=h;pw=w;run()}});ro.observe($("app"));ro.observe($("pg"))}
 })();
 </script></body></html>
